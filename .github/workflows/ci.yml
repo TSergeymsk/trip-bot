@@ -39,8 +39,13 @@ jobs:
       - name: Build static binary (Linux amd64)
         run: |
           mkdir -p dist
-          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o dist/trip-bot ./cmd/bot
+          # Включаем CGO для поддержки SQLite и линкуем статически
+          CGO_ENABLED=1 GOOS=linux GOARCH=amd64 \
+            go build -ldflags="-s -w -linkmode external -extldflags -static" \
+            -o dist/trip-bot ./cmd/bot
           ls -la dist/
+          file dist/trip-bot
+          ldd dist/trip-bot || true
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -52,10 +57,10 @@ jobs:
     needs: build-and-test
     runs-on: ubuntu-latest
     permissions:
-      contents: write   # <-- даём право на создание релизов
+      contents: write
     if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
     steps:
-      - uses: actions/checkout@v4   # нужно для gh release create
+      - uses: actions/checkout@v4
 
       - name: Download artifact
         uses: actions/download-artifact@v4
