@@ -8,10 +8,8 @@ on:
   pull_request:
     branches: [ main ]
 
-permissions:
-  contents: write
-
 jobs:
+  # Общая сборка и тесты
   build-and-test:
     runs-on: ubuntu-latest
     steps:
@@ -43,18 +41,58 @@ jobs:
         run: |
           mkdir -p dist
           CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o dist/trip-bot ./cmd/bot
+          ls -la dist/   # проверка
 
-      - name: Upload binary as artifact
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: trip-bot
           path: dist/trip-bot
 
-      - name: Create GitHub Release (only on tags)
-        if: startsWith(github.ref, 'refs/tags/')
+  # Релиз для разработки (обновляется при каждом push в main)
+  release-dev:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: trip-bot
+          path: dist/
+
+      - name: Create/Update dev release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: dist/trip-bot
+          tag_name: "dev"
+          name: "Development Build (latest)"
+          prerelease: true
+          draft: false
+          generate_release_notes: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # Стабильный релиз по тегам (при пуше v*)
+  release-stable:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: trip-bot
+          path: dist/
+
+      - name: Create stable release
         uses: softprops/action-gh-release@v1
         with:
           files: dist/trip-bot
           generate_release_notes: true
+          tag_name: ${{ github.ref_name }}
+          name: "Release ${{ github.ref_name }}"
+          prerelease: false
+          draft: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
