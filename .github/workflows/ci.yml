@@ -9,7 +9,6 @@ on:
     branches: [ main ]
 
 jobs:
-  # Общая сборка и тесты
   build-and-test:
     runs-on: ubuntu-latest
     steps:
@@ -41,7 +40,7 @@ jobs:
         run: |
           mkdir -p dist
           CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o dist/trip-bot ./cmd/bot
-          ls -la dist/   # проверка
+          ls -la dist/
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -49,11 +48,13 @@ jobs:
           name: trip-bot
           path: dist/trip-bot
 
-  # Релиз для разработки (обновляется при каждом push в main)
-  release-dev:
+  create-release:
     needs: build-and-test
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    # Запускаем для push в main ИЛИ для push тега v*
+    if: |
+      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+      startsWith(github.ref, 'refs/tags/v')
     steps:
       - name: Download artifact
         uses: actions/download-artifact@v4
@@ -61,38 +62,33 @@ jobs:
           name: trip-bot
           path: dist/
 
-      - name: Create/Update dev release
-        uses: softprops/action-gh-release@v1
-        with:
-          files: dist/trip-bot
-          tag_name: "dev"
-          name: "Development Build (latest)"
-          prerelease: true
-          draft: false
-          generate_release_notes: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Determine tag and release name
+        id: vars
+        run: |
+          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            # Если это тег, используем его
+            TAG="${{ github.ref_name }}"
+            NAME="Release ${{ github.ref_name }}"
+            PRERELEASE="false"
+          else
+            # Если это push в main, создаём релиз с тегом на основе SHA
+            SHORT_SHA="${GITHUB_SHA::8}"
+            TAG="build-$SHORT_SHA"
+            NAME="Build from commit $SHORT_SHA"
+            PRERELEASE="false"
+          fi
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          echo "name=$NAME" >> $GITHUB_OUTPUT
+          echo "prerelease=$PRERELEASE" >> $GITHUB_OUTPUT
 
-  # Стабильный релиз по тегам (при пуше v*)
-  release-stable:
-    needs: build-and-test
-    runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/v')
-    steps:
-      - name: Download artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: trip-bot
-          path: dist/
-
-      - name: Create stable release
+      - name: Create release
         uses: softprops/action-gh-release@v1
         with:
           files: dist/trip-bot
           generate_release_notes: true
-          tag_name: ${{ github.ref_name }}
-          name: "Release ${{ github.ref_name }}"
-          prerelease: false
+          tag_name: ${{ steps.vars.outputs.tag }}
+          name: ${{ steps.vars.outputs.name }}
+          prerelease: ${{ steps.vars.outputs.prerelease }}
           draft: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
