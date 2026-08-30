@@ -25,10 +25,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-go-
 
-      - name: Download dependencies
-        run: go mod download
-
-      - name: Tidy dependencies (ensure go.sum is up-to-date)
+      - name: Tidy dependencies (ensures go.sum is present and up-to-date)
         run: go mod tidy
 
       - name: Run tests

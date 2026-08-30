@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/go-telegram/bot"
-	"github.com/go-telegram/bot/models"
 )
 
 type Client struct {
@@ -36,11 +35,11 @@ func (c *Client) SendOrUpdate(ctx context.Context, chatID int64, threadID int, m
 
 	params := &bot.EditMessageTextParams{
 		ChatID:          chatID,
-		MessageThreadID: threadID,
+		MessageThreadID: threadID, // теперь поле поддерживается
 		MessageID:       msgID,
 		Text:            text,
 		ParseMode:       "Markdown",
 	}
 	_, err := c.bot.EditMessageText(ctx, params)
-	return msgID, err // ID не меняется
+	return msgID, err
 }
