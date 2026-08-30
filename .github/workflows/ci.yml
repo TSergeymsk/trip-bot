@@ -25,7 +25,10 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-go-
 
-      - name: Tidy dependencies (ensures go.sum is present and up-to-date)
+      - name: Force update go-telegram/bot to v1.0.0
+        run: go get github.com/go-telegram/bot@v1.0.0
+
+      - name: Tidy dependencies
         run: go mod tidy
 
       - name: Run tests
@@ -34,7 +37,7 @@ jobs:
       - name: Build
         run: GOOS=linux GOARCH=amd64 go build -o trip-bot ./cmd/bot
 
-      - name: Upload binary (optional)
+      - name: Upload binary
         uses: actions/upload-artifact@v4
         with:
           name: trip-bot-linux
