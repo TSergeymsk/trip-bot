@@ -35,7 +35,7 @@ func (c *Client) SendOrUpdate(ctx context.Context, chatID int64, threadID int, m
 
 	params := &bot.EditMessageTextParams{
 		ChatID:          chatID,
-		MessageThreadID: threadID, // теперь поле поддерживается
+		MessageThreadID: threadID, // теперь поле существует
 		MessageID:       msgID,
 		Text:            text,
 		ParseMode:       "Markdown",
