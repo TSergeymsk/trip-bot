@@ -2,7 +2,6 @@ package telegram
 
 import (
 	"context"
-
 	"github.com/go-telegram/bot"
 )
 
@@ -33,13 +32,18 @@ func (c *Client) SendOrUpdate(ctx context.Context, chatID int64, threadID int, m
 		return resp.ID, nil
 	}
 
-	params := &bot.EditMessageTextParams{
-		ChatID:          chatID,
-		MessageThreadID: threadID, // теперь поле существует
-		MessageID:       msgID,
-		Text:            text,
-		ParseMode:       "Markdown",
+	// Используем прямой вызов API для редактирования, чтобы гарантированно передать message_thread_id
+	params := map[string]interface{}{
+		"chat_id":           chatID,
+		"message_id":        msgID,
+		"text":              text,
+		"parse_mode":        "Markdown",
+		"message_thread_id": threadID,
 	}
-	_, err := c.bot.EditMessageText(ctx, params)
-	return msgID, err
+	var result struct{ Ok bool }
+	err := c.bot.Request(ctx, "editMessageText", params, &result)
+	if err != nil {
+		return 0, err
+	}
+	return msgID, nil
 }

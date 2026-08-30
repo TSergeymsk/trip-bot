@@ -25,11 +25,21 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-go-
 
-      - name: Update go-telegram/bot to v1.1.5
+      # Принудительно очищаем кеш, чтобы избежать старой версии
+      - name: Clear module cache
+        run: go clean -modcache
+
+      # Убеждаемся, что у нас свежая версия библиотеки
+      - name: Get go-telegram/bot@v1.1.5
         run: go get github.com/go-telegram/bot@v1.1.5
 
+      # Создаём go.sum и подтягиваем все зависимости
       - name: Tidy dependencies
         run: go mod tidy
+
+      # Проверяем, что версия установлена
+      - name: Show bot version
+        run: go list -m github.com/go-telegram/bot
 
       - name: Run tests
         run: go test -v -race ./...
