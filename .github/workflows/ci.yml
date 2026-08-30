@@ -51,7 +51,6 @@ jobs:
   release:
     needs: build-and-test
     runs-on: ubuntu-latest
-    # Запускаем при пуше в main (без тега) ИЛИ при пуше тега v*
     if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
     steps:
       - name: Download artifact
@@ -66,8 +65,8 @@ jobs:
           if [[ "${{ github.ref }}" == refs/tags/* ]]; then
             TAG="${{ github.ref_name }}"
           else
-            # Генерируем уникальный тег на основе commit SHA
-            SHORT_SHA=$(git rev-parse --short HEAD)
+            # Берем первые 7 символов SHA из переменной окружения GITHUB_SHA
+            SHORT_SHA="${GITHUB_SHA::7}"
             TAG="build-$SHORT_SHA"
           fi
           echo "tag=$TAG" >> $GITHUB_OUTPUT
