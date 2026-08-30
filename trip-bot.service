@@ -1,0 +1,26 @@
+[Unit]
+Description=Trip Telegram Bot
+After=network.target
+
+[Service]
+Type=simple
+User=botuser
+Group=botuser
+WorkingDirectory=/opt/trip-bot
+ExecStart=/opt/trip-bot/trip-bot
+Restart=always
+RestartSec=10
+
+# Переменные окружения
+Environment="TELEGRAM_TOKEN=123456:ABC-DEF"
+Environment="GOOGLE_CREDENTIALS=/opt/trip-bot/credentials.json"
+Environment="SHEET_ID=your_sheet_id"
+Environment="SHEET_RANGE=A1:E20"
+Environment="CHAT_ID=-1001234567890"
+Environment="THREAD_ID=12345"
+Environment="WEBHOOK_SECRET=your_secret_here"
+Environment="PORT=8080"
+Environment="DB_PATH=/var/lib/trip-bot/state.db"
+
+[Install]
+WantedBy=multi-user.target
