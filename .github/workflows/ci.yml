@@ -48,13 +48,10 @@ jobs:
           name: trip-bot
           path: dist/trip-bot
 
-  create-release:
+  release:
     needs: build-and-test
     runs-on: ubuntu-latest
-    # Запускаем для push в main ИЛИ для push тега v*
-    if: |
-      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
-      startsWith(github.ref, 'refs/tags/v')
+    if: startsWith(github.ref, 'refs/tags/v')
     steps:
       - name: Download artifact
         uses: actions/download-artifact@v4
@@ -62,33 +59,15 @@ jobs:
           name: trip-bot
           path: dist/
 
-      - name: Determine tag and release name
-        id: vars
-        run: |
-          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
-            # Если это тег, используем его
-            TAG="${{ github.ref_name }}"
-            NAME="Release ${{ github.ref_name }}"
-            PRERELEASE="false"
-          else
-            # Если это push в main, создаём релиз с тегом на основе SHA
-            SHORT_SHA="${GITHUB_SHA::8}"
-            TAG="build-$SHORT_SHA"
-            NAME="Build from commit $SHORT_SHA"
-            PRERELEASE="false"
-          fi
-          echo "tag=$TAG" >> $GITHUB_OUTPUT
-          echo "name=$NAME" >> $GITHUB_OUTPUT
-          echo "prerelease=$PRERELEASE" >> $GITHUB_OUTPUT
-
       - name: Create release
-        uses: softprops/action-gh-release@v1
-        with:
-          files: dist/trip-bot
-          generate_release_notes: true
-          tag_name: ${{ steps.vars.outputs.tag }}
-          name: ${{ steps.vars.outputs.name }}
-          prerelease: ${{ steps.vars.outputs.prerelease }}
-          draft: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -e
+          TAG=${GITHUB_REF_NAME}
+          echo "Creating release for tag $TAG"
+          gh release create "$TAG" dist/trip-bot \
+            --title "Release $TAG" \
+            --generate-notes \
+            --draft=false \
+            --prerelease=false
